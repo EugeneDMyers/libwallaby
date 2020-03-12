@@ -370,7 +370,7 @@ bool Camera::Device::open(const int number, Resolution resolution,
 	  }
 	  else
 	  {
-		  m_cap->set(cv::CAP_PROP_BUFFERSIZE, 4);  // minimize processing
+		  m_cap->set(cv::CAP_PROP_BUFFERSIZE, 10);  // minimize processing
 		  m_cap->set(cv::CAP_PROP_FPS, 15);        // slow down the input
 	  }
 	  m_connected = true;
@@ -856,9 +856,8 @@ int Camera::Device::readFrame() {
   {
 	  if (!m_connected)
 	  {
-		printf("camera not connected\n");
-		//if(m_model != TELLO)
-		//	open(0, LOW_RES, BLACK_2017); // TODO real numbers, we don't use these yet
+		printf("not connected\n");
+		open(0, HIGH_RES/*LOW_RES*/, BLACK_2017); // TODO real numbers, we don't use these yet
 		return -1;
 	  }
 
