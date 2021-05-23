@@ -11,6 +11,7 @@
 #include "channel_p.hpp"
 #include "wallaby/camera.h"
 #include "warn.hpp"
+#include "UDPVideo.hpp"
 
 #include <csetjmp>
 #include <fstream>
@@ -287,14 +288,15 @@ Camera::Device::Device()
   m_cap(0),
   m_image(),
   m_resolution(HIGH_RES),
-  m_model(/*WHITE_2016*/ BLACK_2017)
+  m_model(/*WHITE_2016*/ /*BLACK_2017*/ TELLO)
 {
   Config *config = Config::load(Camera::ConfigPath::defaultConfigPath());
+  ::printf("camera open\n");fflush(NULL);
 
   if(!config) return;
   setConfig(*config);
   delete config;
-
+::printf("camera open compelete\n");fflush(NULL);
   // TODO: set initial resolution?
 }
 
@@ -310,6 +312,11 @@ Camera::Device::~Device() {
 }
 
 Model Camera::Device::getModel() { return this->m_model; }
+
+bool Camera::Device::open()
+{
+	open(0, m_resolution, m_model);
+}
 
 bool Camera::Device::open(const int number, Resolution resolution,
                           Model model) {
@@ -368,6 +375,20 @@ bool Camera::Device::open(const int number, Resolution resolution,
 	  }
 	  m_connected = true;
   }
+  else if (m_model == TELLO)
+  {
+	m_cap = new UDPVideo("0.0.0.0",
+				   11111,
+                                   resolutionToWidth(m_resolution),
+				   resolutionToHeight(m_resolution));
+	if(!m_cap->isOpened())
+	{
+		fprintf(stderr, "Failed to open Tello camera (UDP)");
+		return false;
+	}
+	m_connected = true;
+/*debug*/printf("tello open complete\n");fflush(NULL);
+  }
   return true;
 
 #endif
@@ -390,6 +411,8 @@ unsigned int Camera::Device::resolutionToHeight(Resolution res) {
     return 240;
   case HIGH_RES:
     return 480;
+  case TELLO_RES:
+    return 720;
   }
 
   return 0;
@@ -403,6 +426,8 @@ unsigned int Camera::Device::resolutionToWidth(Resolution res) {
     return 320;
   case HIGH_RES:
     return 640;
+  case TELLO_RES:
+    return 1280;
   }
 
   return 0;
@@ -472,8 +497,10 @@ bool Camera::Device::close() {
 
 	  m_fd = -1;
   }
-  else if (m_model == BLACK_2017)
+  else if ((m_model == BLACK_2017) ||
+	   (m_model == TELLO))
   {
+	/*debug*/ printf("closing camera\n");
 	  delete m_cap;       // test to fix
 	  m_cap = 0;          // prevemt double release
 	  m_connected = false;
@@ -549,11 +576,13 @@ bool Camera::Device::update() {
 		}
 	  }
   }
-  else if (m_model == BLACK_2017)
+  else if ((m_model == BLACK_2017) ||
+	   (m_model == TELLO))
   {
 	  const int readRes = this->readFrame();
 	  if (readRes < 0)
 	  {
+		printf("camera::update - readRes %d\n", readRes);
 		  m_image = cv::Mat();   // return a null image
 		  return false;
 	  }
@@ -822,12 +851,14 @@ int Camera::Device::readFrame() {
       }
 	  return 1;
   }
-  else if (m_model == BLACK_2017)
+  else if ((m_model == BLACK_2017) ||
+	   (m_model == TELLO))
   {
 	  if (!m_connected)
 	  {
-		printf("not connected\n");
-		open(0, LOW_RES, BLACK_2017); // TODO real numbers, we don't use these yet
+		printf("camera not connected\n");
+		//if(m_model != TELLO)
+		//	open(0, LOW_RES, BLACK_2017); // TODO real numbers, we don't use these yet
 		return -1;
 	  }
 
@@ -847,6 +878,7 @@ int Camera::Device::readFrame() {
 		printf("error reading image\n");
 		return -1;
 	  }
+	printf("camera::update m_image %x\n", m_image.data);
 
 	  return 1;
   }
