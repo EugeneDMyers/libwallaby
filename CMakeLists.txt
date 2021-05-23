@@ -177,12 +177,15 @@ endif()
 add_library(wallaby SHARED ${SOURCES} ${PIXELTOASTER_SOURCES} ${OBJC_SOURCES})
 add_library(kipr SHARED ${SOURCES} ${PIXELTOASTER_SOURCES} ${OBJC_SOURCES})
 
-link_directories(/opt/vc/lib)
-
 if(with_vision_support)
   target_link_libraries(wallaby ${OpenCV_LIBS} ${JPEG_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} zbar opencv_core opencv_highgui opencv_imgproc avcodec avutil m /opt/vc/lib/libmmal.so /opt/vc/lib/libbcm_host.so swscale)
   target_link_libraries(kipr ${OpenCV_LIBS} ${JPEG_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} zbar opencv_core opencv_highgui opencv_imgproc avcodec avutil  m /opt/vc/lib/libmmal.so /opt/vc/lib/libbcm_host.so swscale)
 endif()
+link_directories(/opt/vc/lib)
+
+target_link_libraries(wallaby ${OpenCV_LIBS} ${JPEG_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} zbar opencv_core opencv_highgui opencv_imgproc avcodec avutil m /opt/vc/lib/libmmal.so /opt/vc/lib/libbcm_host.so swscale)
+target_link_libraries(kipr ${OpenCV_LIBS} ${JPEG_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} zbar opencv_core opencv_highgui opencv_imgproc avcodec avutil  m /opt/vc/lib/libmmal.so /opt/vc/lib/libbcm_host.so swscale)
+>>>>>>> Libwallaby - tello support
 
 
 if(USE_ARUCO)

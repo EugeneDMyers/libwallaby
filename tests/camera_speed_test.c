@@ -30,8 +30,6 @@ int main()
 
     	printf("Num channels = %d\n", get_channel_count());
 
-
-<<<<<<< HEAD
     	int i;
     	double start = seconds();
     	const int num_imgs = 60;
@@ -50,13 +48,11 @@ int main()
     	printf("Camera close\n");
     	camera_close();
     }
-=======
     printf("Camera close\n");
     camera_close();
 #else
     printf("This platform does not support camera");
 #endif
 
->>>>>>> Wrap vision-related tests with vision support flag
     return 0;
 }
