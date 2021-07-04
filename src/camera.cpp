@@ -879,7 +879,7 @@ int Camera::Device::readFrame() {
 		printf("error reading image\n");
 		return -1;
 	  }
-	printf("camera::update m_image %x\n", m_image.data);
+	  //printf("camera::update m_image %x\n", m_image.data);
 
 	  return 1;
   }
