@@ -195,11 +195,9 @@ void VideoFrameProcessor::run_VDR()
 	{
 		unsigned char packetdata[65536];
 		socklen_t  soc_len = sizeof(cliaddr);  //len is value/resuslt
-
                 receive_size = recvfrom(sockfd, (char *)packetdata, payload_size,
 					MSG_WAITALL, ( struct sockaddr *) &cliaddr,
 					&soc_len);
-
 		in_len = receive_size;
 		in_data = packetdata;
 
@@ -270,7 +268,7 @@ bool VideoFrameProcessor::getpFramefromList (cv::OutputArray image)
 	image.create(NextFrame->height,
 			NextFrame->width,
 			CV_8UC3);
-#if 1
+#if DEBUG_UDP
        ::printf("VideoFrameProcessor::getpFramefromList: %d w: %d dataptr %x linesize[0] %d linesize[1] %d linesize[2] %d\n",
                         NextFrame->height,
                         NextFrame->width,
@@ -390,18 +388,19 @@ void VideoFrameProcessor::run_VFP()
 		{
 
 			AVFrame* pFrame = av_frame_alloc();
-
+#ifdef DEBUG_UDP
 			::printf("VideoFrameProcessor::run_VFP new packet data %x size %d\n",
 					packet.data,
 					packet.size);fflush(NULL);
+#endif
 			int avresult = avcodec_decode_video2(pCodecCtxH264, pFrame, &FrameFinished, &packet);
 
 			//int avresult = decode(pCodecCtxH264, pFrame, &FrameFinished, &packet);
-
+#ifdef DEBUG_UDP
                 	::printf("VideoFrameProcessor::run_VFP-->Decoding complete FrameFinished: %d avresult: %d\n",
 					FrameFinished,
 					avresult);fflush(NULL);
-
+#endif
 			if(FrameFinished == 0)    //  no output this time arounf
 			{
 				::printf("-->frame not decoded\n");fflush(NULL);
@@ -409,6 +408,7 @@ void VideoFrameProcessor::run_VFP()
 			}	
 			else                     // convert the image into something the KIPR SW can understand
 			{
+#ifdef DEBUG_UDP
 				::printf("VideoFrameProcessor::run_VFP data %x pFrame->linesize[0] %d linesize[1] %d width %d height %d key_frame %d\n",
 						pFrame->data[0],
 						pFrame->linesize[0],
@@ -416,7 +416,7 @@ void VideoFrameProcessor::run_VFP()
 						pFrame->width,
 						pFrame->height,
 						pFrame->key_frame);fflush(NULL);
-		
+#endif
 				if(pFrame->data[0] == NULL)
 				{	
 					::printf("VideoFrameProcessor_VFP::run ***Warning*** pointer to frame is NULL\n");fflush(NULL);
