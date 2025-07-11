@@ -1,5 +1,6 @@
 #include "kipr/camera/camera.hpp"
 #include "UDPVideo.hpp"
+#include "USBNETVideo.hpp"
 #include "channel_p.hpp"
 #include "kipr/camera/camera.h"
 #include "kipr/camera/channel.hpp"
@@ -26,6 +27,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #endif
+
+#define BOTUI_AI_CAMERA_TEST 1
 
 using namespace kipr;
 using namespace kipr::camera;
@@ -158,6 +161,8 @@ Device::Device()
       m_impl(new DeviceImpl), m_resolution(HIGH_RES /*LOW_RES*/),
 #ifdef BOTUI_TELLO_TEST
       m_model(TELLO)
+#elseif BOTUI_AI_CAMERA_TEST
+      m_model(AI_CAMERA)
 #else
       m_model(/*WHITE_2016*/ BLACK_2017)
 #endif
@@ -255,6 +260,18 @@ bool Device::open(const int number, Resolution resolution, Model model)
     }
     m_connected = true;
   }
+  else if (m_model == AI_CAMERA)
+  {
+    m_resolution = AI_CAMERA_RES;
+    m_cap = new UsbnetVideo("192.168.1.2", 5555, resolutionToWidth(m_resolution),
+			resolutionToHeight(m_resolution));
+    if (!m_cap->isOpened())
+    {
+	fprintf(stderr, "Failed to open AI Camera USB/UDP");
+	return false;
+    }
+    m_connected = true;
+  }
   return true;
 }
 
@@ -269,6 +286,7 @@ unsigned int Device::resolutionToHeight(Resolution res)
   case MED_RES:
     return 240;
   case HIGH_RES:
+  case AI_CAMERA_RES:
     return 480;
   case TELLO_RES:
     return 720;
@@ -286,6 +304,7 @@ unsigned int Device::resolutionToWidth(Resolution res)
   case MED_RES:
     return 320;
   case HIGH_RES:
+  case AI_CAMERA_RES:
     return 640;
   case TELLO_RES:
     return 1280;
@@ -327,7 +346,7 @@ bool Device::close()
 
     m_fd = -1;
   }
-  else if ((m_model == BLACK_2017) || (m_model == TELLO))
+  else if ((m_model == BLACK_2017) || (m_model == TELLO) || (m_model == AI_CAMERA))
   {
     /*debug*/ printf("closing camera\n");
     delete m_cap; // test to fix
@@ -411,7 +430,7 @@ bool Device::update()
       }
     }
   }
-  else if ((m_model == BLACK_2017) || (m_model == TELLO))
+  else if ((m_model == BLACK_2017) || (m_model == TELLO) || (m_model == AI_CAMERA))
   {
     const int readRes = this->readFrame();
     if (readRes < 0)
@@ -746,7 +765,7 @@ int Device::readFrame()
     }
     return 1;
   }
-  else if ((m_model == BLACK_2017) || (m_model == TELLO))
+  else if ((m_model == BLACK_2017) || (m_model == TELLO) || (m_model == AI_CAMERA))
   {
     if (!m_connected)
     {
@@ -767,10 +786,11 @@ int Device::readFrame()
     {
       printf("cap isn't opened\n");
     }
-
+	m_impl->image = cv::Mat(3, width()*height()*3, CV_8UC3);
     if (!(m_cap->read(m_impl->image)))
     {
       printf("error reading image\n");
+	m_impl->image = cv::Mat();
       return -1;
     }
     // printf("camera::update m_image %x\n", m_image.data);

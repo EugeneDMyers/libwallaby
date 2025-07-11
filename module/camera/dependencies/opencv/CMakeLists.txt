@@ -8,7 +8,7 @@ ExternalProject_Add(dep_opencv
   URL https://github.com/opencv/opencv/archive/refs/tags/4.6.0.tar.gz
   CMAKE_ARGS
     -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-    -DBUILD_SHARED_LIBS=OFF
+    -DBUILD_SHARED_LIBS=ON
     -DWITH_FFMPEG=OFF
     -DWITH_1394=OFF
     -DWITH_GSTREAMER=OFF
@@ -28,11 +28,11 @@ ExternalProject_Add(dep_opencv
     -DBUILD_opencv_apps=OFF
     -DWITH_OPENEXR=OFF
     -DWITH_JASPER=OFF
-    -DWITH_OPENJPEG=OFF
+    -DWITH_OPENJPEG=ON
     -DWITH_WEBP=OFF
-    -DWITH_PNG=OFF
-    -DWITH_JPEG=OFF
-    -DWITH_TIFF=OFF
+    -DWITH_PNG=ON
+    -DWITH_JPEG=ON
+    -DWITH_TIFF=ON
     -DCMAKE_INSTALL_PREFIX=${OPENCV_DIR}
     -DOPENCV_GENERATE_PKGCONFIG=YES
     -DBUILD_opencv_dnn=OFF
