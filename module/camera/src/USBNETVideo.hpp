@@ -43,7 +43,6 @@ class UsbFrameProcessor
   std::mutex m_vid_frame_mutex;
   int m_ldestw, m_ldesth;
 
-  AVCodecParserContext *m_parser;
   AVDictionary *m_av_dict_h264 = NULL;
   AVCodecContext *m_pcodec_ctx_h264;
 
@@ -57,10 +56,13 @@ public:
                       const int desth);
 
   ~UsbFrameProcessor(void) throw();
-  bool get_pframe_from_list(cv::OutputArray image); // AVFrame& newFrame);
+  bool get_pframe_from_list(cv::OutputArray image, char* & object_list); // AVFrame& newFrame);
   cv::Mat m_next_frame;
 
-  void add_pframe_to_list(cv::Mat &newFrame);
+  void add_pframe_to_list(cv::Mat &newFrame, char * object_list);
+
+  char * m_next_object_list;
+
 private:
   void run_vfp();
   void run_vdr();
@@ -83,6 +85,8 @@ public:
   bool isOpened() const;
   //bool read(cv::Mat* Image) override;
   bool read(cv::OutputArray image) override;
+  static char * m_object_list;
+
 
 private:
   bool m_udp_opened;

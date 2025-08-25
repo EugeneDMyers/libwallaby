@@ -2,6 +2,7 @@
 #include "PracticalSocket.h"
 #include "opencv2/opencv.hpp"
 #include "opencv2/imgcodecs.hpp"
+#include "KIPRnet.hpp"
 
 #define DEST_PIXEL_FMT AV_PIX_FMT_BGR24
 #define AI_CAMERA_H 720
@@ -25,6 +26,8 @@
 using namespace std;
 using namespace cv;
 
+//char * UsbnetVideo::m_object_list;
+
 UsbFrameProcessor::UsbFrameProcessor(
     const char *drone_ip_address, const short unsigned int drone_port,
     const int destw, const int desth)
@@ -35,6 +38,8 @@ UsbFrameProcessor::UsbFrameProcessor(
 
   m_ldestw = destw;
   m_ldesth = desth;
+
+  m_next_object_list = nullptr;
 
   // start up the UDP packet receiver thread
   m_vdr_thread = new std::thread([this]()
@@ -65,7 +70,6 @@ UsbFrameProcessor::~UsbFrameProcessor() throw()
               << std::flush;
   }
   // Cleanup
-  av_parser_close(m_parser);
   std::cout << "iUsbFrameProcessor - terminated" << std::endl;
   fflush(NULL);
 }
@@ -90,61 +94,70 @@ void UsbFrameProcessor::run_vdr()
         clock_t last_cycle = clock();
         while (m_udp_video_up) {
             // Block until receive message from a client
+
+start_block:
             do {
                 recvMsgSize = sock.recvFrom(buffer, BUF_LEN, sourceAddress, sourcePort);
-            } while (recvMsgSize > sizeof(int));
-            int total_pack = ((int * ) buffer)[0];
-            cout << "expecting length of packs:" << total_pack << endl;
+            } while (recvMsgSize == PACK_SIZE);
+
+            int total_pack = ((int *) buffer)[0];
+            cout << "expected number of packets: " << total_pack << " HeaderSize " << recvMsgSize << endl;
             char * longbuf = new char[PACK_SIZE * total_pack];
+	    char * object_list;
+		int object_count;
+		if(recvMsgSize > (2*sizeof(int)))
+		{
+			memcpy(&object_count, buffer + sizeof(int), sizeof(int));
+			object_list = new char[sizeof(int) + (object_count * sizeof(object_detection))];
+			memcpy(object_list, buffer + sizeof(int), sizeof(int) + (object_count * sizeof(object_detection)));
+		
+		}
+		else object_list = nullptr;
+
             for (int i = 0; i < total_pack; i++) {
                 recvMsgSize = sock.recvFrom(buffer, BUF_LEN, sourceAddress, sourcePort);
                 if (recvMsgSize != PACK_SIZE) {
                     cerr << "Received unexpected size pack:" << recvMsgSize << endl;
-                    continue;
+fflush(NULL);
+		   free(longbuf);
+                   goto start_block;   // somethings wrong - find next frame 
                 }
                 memcpy( & longbuf[i * PACK_SIZE], buffer, PACK_SIZE);
             }
 
             cout << "run-vdt Received packet from " << sourceAddress << ":" << sourcePort << endl;
-
             Mat rawData = Mat(1, PACK_SIZE * total_pack, CV_8UC1, longbuf);
+#ifdef VDTDEBUG
 /*DEBUG*/ cout << "run-vdt - rawData.size().width: " << rawData.size().width << endl;
 /*DEBUG*/ cout << "run-vdt rawData.rows: " << rawData.rows << " rawData.cols: " << rawData.cols << endl;
-
+#endif
 // DEBUG dig out the codec signature string
 
 size_t maxlen = 3;
-
             Mat frame = imdecode(rawData, IMREAD_COLOR|IMREAD_ANYDEPTH|IMREAD_IGNORE_ORIENTATION);
+#ifdef VDTDEBUG
 /*DEBUG*/ cout << "run-vdt - frame.size().width: " << frame.size().width << endl;
 /*DEBUG*/ cout << "run-vdt - frame.depth(): " << frame.depth() << " frame.channels(): " << frame.channels() << endl;
+#endif
+	    free(longbuf);
             if (frame.size().width == 0) {
                 cerr << "decode failure!" << endl;
                 continue;
             }
-
-
-
-
-//////
-//  	    Mat * output_frame = new Mat(frame.channels(), frame.rows * frame.cols*frame.channels(), frame.type(), frame.data);//, /*copyData=*/true);
-	    free(longbuf);
-
-	    //frame.copyTo(&output_frame);
         
             clock_t next_cycle = clock();
             double duration = (next_cycle - last_cycle) / (double) CLOCKS_PER_SEC;
-            cout << "\t run-vdt effective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << endl;
-
+/*            cout << " run-vdt effective FPS: " << (1 / duration) << " kbps: " << (PACK_SIZE * total_pack / duration / 1024 * 8) << endl;
+*/
             cout << next_cycle - last_cycle;
             last_cycle = next_cycle;
-		add_pframe_to_list(frame);
-           }
+            add_pframe_to_list(frame, object_list);
+     }
   std::cout << "UsbFrameProcessor - run_vdr stopped" << std::endl;
 }
 
 #define FRAME_SLEEP_TIME 10 // in milliseconds
-bool UsbFrameProcessor::get_pframe_from_list(cv::OutputArray image)
+bool UsbFrameProcessor::get_pframe_from_list(cv::OutputArray image, char* & object_list)
 {
   unsigned long wait_time = 0;
   while (!m_new_frame)
@@ -163,45 +176,36 @@ bool UsbFrameProcessor::get_pframe_from_list(cv::OutputArray image)
     }
   }
 
-cout << "get_pframe_from_list - lock wait  " << endl;
   m_vid_frame_mutex.lock();
 
-
+#ifdef DEBUGGETPFRAME
 /*DEBUG*/ cout << "get_pframe_from_list  m_next_frame.channels: " << m_next_frame.channels() << endl; 
 /*DEBUG*/ cout << "get_pframe_from_list  image.channels: " << image.channels() << endl;
 /*DEBUG*/ cout << "get_pframe_from_list  m_next_frame.depth: " << m_next_frame.depth() << endl;
 /*DEBUG*/ cout << "get_pframe_from_list image.depth: " << image.depth() << endl;
-//	m_next_frame->copyTo(image, CV_8UC3);
-        //cv::Mat imaget = m_next_frame;
-        //m_next_frame.copyTo(image, CV_8UC3);
-	//av_free(m_next_frame);
+#endif
 
 	image.create(m_next_frame.rows, m_next_frame.cols, CV_8UC3);
-        //cv::Mat& image2 = image.getMat();
-
 	m_next_frame.copyTo(image.getMatRef());
-        
-
-  //m_next_frame = NULL;
+  object_list = m_next_object_list;
+  m_next_object_list = nullptr;
   m_new_frame = false;
   m_vid_frame_mutex.unlock();
   return true;
 }
 
-void UsbFrameProcessor::add_pframe_to_list(Mat &newFrame)
+void UsbFrameProcessor::add_pframe_to_list(Mat &newFrame, char * object_list)
 {
   m_vid_frame_mutex.lock();
 
   // make sure the requestor receives the most recent frame
   // so we have only a one frame queue
-  //if (m_next_frame != NULL)
-  //{
-    //av_free(m_next_frame);
-  //}
   m_next_frame = newFrame;
+  if(m_next_object_list != nullptr)
+	free(m_next_object_list);
+  m_next_object_list = object_list;
 	std::cout << "UsbFrameProcessor::add_pframe_to_list h: " << newFrame.rows
     << " w: " << newFrame.cols << endl;
-  //newFrame = NULL;
   m_new_frame = true;
   m_vid_frame_mutex.unlock();
 }
@@ -213,6 +217,8 @@ UsbnetVideo::UsbnetVideo(const char *drone_ip_address,
   m_udp_opened = true;
   m_data_receiver =
       new UsbFrameProcessor(drone_ip_address, drone_port, destw, desth);
+  m_object_list = nullptr;
+
   std::cout << "USB/UDP Video started" << std::endl;
 }
 
@@ -220,7 +226,7 @@ UsbnetVideo::~UsbnetVideo()
 {
   m_udp_opened = false;
   delete m_data_receiver;
-  std::cout << "~UsbnetVideo done\n";
+  std::cout << "~UsbnetVideo done" << std::endl << std::flush;
 }
 
 bool UsbnetVideo::isOpened() const { return m_udp_opened; }
@@ -228,7 +234,12 @@ bool UsbnetVideo::isOpened() const { return m_udp_opened; }
 bool UsbnetVideo::read(cv::OutputArray image)
 {
   bool retval = false;
+  char * object_list;
   if (isOpened())
-    retval = m_data_receiver->get_pframe_from_list(image);
+  {
+    retval = m_data_receiver->get_pframe_from_list(image, object_list);
+
+    m_object_list = object_list;
+  }
   return retval;
 }
