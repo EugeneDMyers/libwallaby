@@ -151,3 +151,6 @@ target_link_libraries(opencv_videoio_wrapper INTERFACE opencv opencv_videoio)
 # opencv_imgcodecs
 add_library(opencv_imgcodecs_wrapper INTERFACE)
 target_link_libraries(opencv_imgcodecs_wrapper INTERFACE opencv opencv_imgcodecs)
+
+# Install compiled opencv libs as required by AI Camera update
+install(DIRECTORY ${OPENCV_LIB_DIR}/ TYPE LIB)
