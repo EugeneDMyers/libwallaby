@@ -66,7 +66,25 @@ emcmake cmake -Bbuild -Dwith_graphics=OFF -Dwith_camera=OFF -Dwith_tello=OFF -DP
 ```
 where:
   - `$PYTHON_LIBRARY` is the `libpythonVERSION.a` file that has been compiled to emscripten-browser.
-  - `$PYTHON_INCLUDE_DIR` is that python's include directory. 
+  - `$PYTHON_INCLUDE_DIR` is that python's include directory.
+
+# AI Camera Testing
+
+You can install the deb file hosted [here](asdf), which should include all changes up to 2025-10-10.
+If you want to test newer changes, or just want to have a great time, you can compile using the instructions above or using the new Docker build.
+
+Make sure docker is set up properly for your user.
+
+```bash
+./build.sh
+```
+
+Install the produced `deb` normally and reboot, then add the `./ai-camera-link.nmconnection` to your wombat, which will automatically connect when the AI camera is plugged in.
+
+```bash
+scp ai-camera-link.nmconnection kipr@<wombat_ip>:~
+ssh kipr@<wombat_ip> 'sudo bash -c "mv /home/kipr/ai-camera-link.nmconnection /etc/NetworkManager/system-connections/ && chown root:root /etc/NetworkManager/system-connections/ai-camera-link.nmconnection && sudo reboot"'
+```
 
 # License
 
