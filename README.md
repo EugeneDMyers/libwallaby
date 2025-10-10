@@ -66,7 +66,54 @@ emcmake cmake -Bbuild -Dwith_graphics=OFF -Dwith_camera=OFF -Dwith_tello=OFF -DP
 ```
 where:
   - `$PYTHON_LIBRARY` is the `libpythonVERSION.a` file that has been compiled to emscripten-browser.
-  - `$PYTHON_INCLUDE_DIR` is that python's include directory. 
+  - `$PYTHON_INCLUDE_DIR` is that python's include directory.
+
+# AI Camera Testing
+
+You can install the deb file hosted [here](https://files.kipr.org/kipr-1.2.1-Linux.deb), which should include all changes up to 2025-10-10.
+If you want to test newer changes, you can compile using the instructions above or using the new Docker build.
+
+Get the sysroot for cross-compilation with git lfs. This may take a while depending on your connection speed.
+
+```bash
+git lfs pull
+```
+
+Make sure docker is set up properly for your user and run the build script:
+
+```bash
+./build.sh
+```
+
+Install the produced `deb` on the Wombat, reboot, then add the `./ai-camera-link.nmconnection` to your wombat, which will automatically connect when the AI camera is plugged in.
+
+```bash
+scp ai-camera-link.nmconnection kipr@<wombat_ip>:~
+ssh kipr@<wombat_ip> 'sudo bash -c "mv /home/kipr/ai-camera-link.nmconnection /etc/NetworkManager/system-connections/ && chown root:root /etc/NetworkManager/system-connections/ai-camera-link.nmconnection && sudo reboot"'
+```
+
+## Notes on AI Camera beta
+
+This patch should only be used for testing as it will cause only the AI camera to be supported.
+This restriction will be lifted in an upcoming release.
+Important parts not included in this release:
+
+1. AI camera auto-detect. Important because the AI camera uses IP over USB as its connection. Auto-detect will look for the camera over the USB IP network.
+2. Model download. Download AI models from the Wombat.
+
+The object data structures found by the AI camera are transferred into a configured blob tracking channel, which can be done through BOTUI->settings->channels.
+The added channel is currently configured using "QR code scanner."
+A future release will use a more appropriate name.
+
+The data fields of the channel object structure are used as follows:
+
+- `m_centroid` - centroid
+- `m_bounding_box` - bounding box
+- `m_confidence` - confidence
+- `m_data` - string from model that indicates object type
+- `m_length` - length of string
+
+In short, the same as the blob tracking object and with the added bonus of being accessed by existing functions.
 
 # License
 
