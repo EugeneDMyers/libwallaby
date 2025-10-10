@@ -73,13 +73,19 @@ where:
 You can install the deb file hosted [here](https://files.kipr.org/kipr-1.2.1-Linux.deb), which should include all changes up to 2025-10-10.
 If you want to test newer changes, you can compile using the instructions above or using the new Docker build.
 
-Make sure docker is set up properly for your user.
+Get the sysroot for cross-compilation with git lfs. This may take a while depending on your connection speed.
+
+```bash
+git lfs pull
+```
+
+Make sure docker is set up properly for your user and run the build script:
 
 ```bash
 ./build.sh
 ```
 
-Install the produced `deb` normally and reboot, then add the `./ai-camera-link.nmconnection` to your wombat, which will automatically connect when the AI camera is plugged in.
+Install the produced `deb` on the Wombat, reboot, then add the `./ai-camera-link.nmconnection` to your wombat, which will automatically connect when the AI camera is plugged in.
 
 ```bash
 scp ai-camera-link.nmconnection kipr@<wombat_ip>:~
