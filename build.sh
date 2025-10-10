@@ -4,7 +4,7 @@ docker build -t libwallaby-builder:bullseye .
 
 [ -d ./container/sysroot ] || tar -C ./container -xzf ./container/sysroot.tar.gz
 
-SRC="$HOME/Documents/work/camera/libwallaby"
+SRC="$(pwd)/libwallaby"
 
 docker run \
   --mount type=bind,src="${SRC}",dst=/work/src \
