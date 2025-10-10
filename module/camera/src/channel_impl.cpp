@@ -34,6 +34,8 @@ ObjectVector ChannelImpl::objects(const config::Config &config)
 
 std::map<std::string, ChannelImpl *> ChannelImplManager::m_channelImpls = {
   {"hsv", new HsvChannelImpl()},
+   {"qr", new TensorChannelImpl()},
+   {"tensor", new TensorChannelImpl()},
 };
 
 void ChannelImplManager::setImage(const cv::Mat &image)
