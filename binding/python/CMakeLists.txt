@@ -10,8 +10,8 @@ if(with_python_binding)
 
   file(MAKE_DIRECTORY ${PACKAGE_DIR}/src/kipr)
 
-  # Force swig to actually produce the file with OUTPUT
   add_custom_command(
+    # Make sure CMake knows that it needs to produce these files
     OUTPUT
       ${KIPR_PYTHON_WRAPPER}
       ${PACKAGE_DIR}/src/kipr/kipr.py
