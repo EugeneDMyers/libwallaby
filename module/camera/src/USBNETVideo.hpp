@@ -87,10 +87,12 @@ public:
   bool read(cv::OutputArray image) override;
   static char * m_object_list;
 
-
 private:
   bool m_udp_opened;
   UsbFrameProcessor *m_data_receiver;
 };
+
+char * ai_camera_command(char * command, int bufferlength);
+bool ai_camera_check();
 
 #endif /* USBNETVideo_hpp */

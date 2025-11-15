@@ -201,9 +201,12 @@ bool Device::open(const int number, Resolution resolution, Model model)
   m_model = model;
   m_resolution = resolution;
 
-/*HACK FOR AI CAM TEST*/
-m_model = AI_CAMERA;
-printf("AI_CAMERA SET\n");
+  /*Check FOR AI CAMERA*/
+  if(ai_camera_check())
+  {
+    m_model = AI_CAMERA;
+    printf("AI_CAMERA SET\n");
+  }
 
   if (m_model == WHITE_2016)
   {
