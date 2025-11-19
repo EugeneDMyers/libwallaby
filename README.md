@@ -70,7 +70,11 @@ where:
 
 # AI Camera Testing
 
-You can install the deb file hosted [here](https://files.kipr.org/kipr-1.2.1-Linux.deb), which should include all changes up to 2025-10-10.
+If you just want to test the libwallaby changes without worrying about installation, you can flash your Wombat with a [testing image](https://files.kipr.org/wombat/Wombat_v32.0.0-aicam_beta_20251119.img.gz).
+The latest was built on 2025-11-19.
+
+You can install the `.deb` file hosted [here](https://files.kipr.org/devel/kipr-1.2.2-Linux.deb), which should include all changes up to 2025-11-19.
+If you download the prebuild `.deb` file, proceed to **installation** below.
 If you want to test newer changes, you can compile using the instructions above or using the new Docker build.
 
 Get the sysroot for cross-compilation with git lfs. This may take a while depending on your connection speed.
@@ -85,12 +89,81 @@ Make sure docker is set up properly for your user and run the build script:
 ./build.sh
 ```
 
-Install the produced `deb` on the Wombat, reboot, then add the `./ai-camera-link.nmconnection` to your wombat, which will automatically connect when the AI camera is plugged in.
+This will produce a `.deb` file in the `build` directory.
 
-```bash
-scp ai-camera-link.nmconnection kipr@<wombat_ip>:~
-ssh kipr@<wombat_ip> 'sudo bash -c "mv /home/kipr/ai-camera-link.nmconnection /etc/NetworkManager/system-connections/ && chown root:root /etc/NetworkManager/system-connections/ai-camera-link.nmconnection && sudo reboot"'
+## Installation
+
+First, plug the Pi Zero into the Wombat, then SSH into the Wombat and create the the necessary connection.
+
 ```
+sudo nmcli connection add type ethernet con-name ai-camera-link ifname usb0 ipv4.addresses 192.168.1.1/24 ipv4.method manual ipv6.method auto ipv6.addresses "fe80::c3ed:d6c2:1e76:cebe/64" ipv6.routes "fe80::/64 :: 101"
+```
+
+The connection should come up pretty quickly (<30 sec).
+
+You can verify the connection by `ssh`ing from the Wombat to the Pi Zero:
+
+```
+ssh kipr@192.168.1.2
+```
+
+We will be rebooting the Wombat later, so you may wish to power off the Pi Zero now to avoid potential disk corruption.
+
+```
+sudo poweroff
+```
+
+Now, install the testing version of libwallaby.
+
+1. Copy the updated libwallaby `.deb` file to the wombat.
+
+```
+scp kipr-<ver>-Linux.deb kipr@<wombat_ip>:~
+```
+
+2. `ssh` into the wombat and update:
+
+```
+sudo apt install ./kipr-<ver>.deb
+```
+
+3. Reboot
+
+```
+sudo reboot
+```
+
+### Debugging With systemd
+
+`botui` on the Wombat runs as a systemd unit.
+You can view a unit's logs by running:
+
+```
+sudo journalctl -b -f -u <service-name>.service
+```
+
+So, for `botui`:
+
+```
+sudo journalctl -b -f -u botui.service
+```
+
+Flags:
+
+- `-b`: Only show logs from current boot.
+- `-f`: Emulates `tail -f` with a continuous stream.
+- `-u UNIT`: Only view logs for `UNIT`, rather than viewing logs for everything systemd is tracking.
+
+See `man journalctl` for more info.
+
+You can also list everything systemd is currently tracking by running:
+
+```
+systemctl
+```
+
+Generally the entries suffixed with `.service` are the most pertinent.
+
 
 ## Notes on AI Camera beta
 
