@@ -4,6 +4,14 @@
 #include "opencv2/imgcodecs.hpp"
 #include "KIPRnet.hpp"
 
+#include <poll.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+
 #define DEST_PIXEL_FMT AV_PIX_FMT_BGR24
 #define AI_CAMERA_H 720
 #define AI_CAMERA_W 1280
@@ -242,4 +250,94 @@ bool UsbnetVideo::read(cv::OutputArray image)
     m_object_list = object_list;
   }
   return retval;
+}
+
+#define MAXRECVBUFF 256
+#define AICAM_POLL_TIMEOUT 10000 /* in milliseconds */
+
+char * ai_camera_command(char * command, int bufferlength)
+{
+	int flag = 1;
+	int sockfd;
+	int connectreturn;
+	struct sockaddr_in servaddr;
+	int commandLen = strlen(command);   // Determine input length
+	int bytes_sent;
+
+	// Establish connection with the AI Camera server
+
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if(sockfd == -1)
+	{
+		cout << "socket creation failed" << endl;
+		return NULL;
+	}
+
+	// assign IP, PORT
+
+	memset(&servaddr, 0, sizeof(servaddr));
+
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_addr.s_addr = inet_addr(AI_CAMERA_IP);
+	servaddr.sin_port = htons(AI_CAMERA_COMMAND_PORT);
+
+	// connect  to the AI Camera command port
+
+	connectreturn = connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
+
+	if(connectreturn != 0)
+	{
+		cout << "connection with AI server failed with error " << connectreturn << endl;
+		perror("ai_camera_command connect");
+		close(sockfd);
+		return NULL;
+	}
+
+	// Send the string to the AI camera server
+
+	setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(int));
+
+	bytes_sent = send(sockfd, command, commandLen, 0);
+
+	cout << "ai_camera_command - command sent: " << command << endl;
+
+	int bytesReceived = 0;              // Bytes read on each recv()
+	int totalBytesReceived = 0;         // Total bytes read
+	cout << "ai_camera_command-Received: ";               // Setup to print the echoed string
+        char * returnBuffer = (char *) malloc(MAXRECVBUFF);    // Buffer for echo string + \0
+
+	bytesReceived = recv(sockfd, returnBuffer, MAXRECVBUFF-1, 0);
+
+	if (bytesReceived < 0) {
+		perror("ai_camera_command - recv");
+		close(sockfd);
+		free(returnBuffer);
+		return NULL;
+	}
+	returnBuffer[bytesReceived] = '\0';        // Terminate the string!
+	cout << "->"<< returnBuffer << "<-" << std::endl << std::flush ;
+
+	close(sockfd);
+	return returnBuffer;
+}
+
+bool ai_camera_check()
+{
+	bool rtn;
+	char * status = (char *) "status";
+
+	char * returnBuffer = ai_camera_command(status, 7);
+
+	if(returnBuffer == NULL)
+	{
+		return false;
+	}
+
+	if(strncmp(returnBuffer, "ready", 6) == 0)
+		rtn = true;
+	else
+		rtn = false;
+
+	free(returnBuffer);
+	return rtn;
 }
