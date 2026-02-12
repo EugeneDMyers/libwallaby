@@ -129,7 +129,8 @@ ObjectVector TensorChannelImpl::findObjects(const Config &config)
 
 	/*debug*/std::cout << "findObjects " << t_object->box.x << " " << t_object->box.y << " " << t_object->box.width << " " << t_object->box.height << " " << t_object->confidence << std::endl; fflush(NULL);
 		ret.push_back(Object(
-			Point2<unsigned>(0,0),
+			Point2<unsigned>((t_object->box.x + t_object->box.x + t_object->box.width)/2,
+						(t_object->box.y + t_object->box.y + t_object->box.height)/2),
 			Rect<unsigned>(t_object->box.x, t_object->box.y, t_object->box.width, t_object->box.height),
 			t_object->confidence,
 			t_object->name,
