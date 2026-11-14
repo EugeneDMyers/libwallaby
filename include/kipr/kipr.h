@@ -7,6 +7,10 @@
 #include "kipr/accel/accel.h"
 #endif
 
+#ifdef KIPR_MODULE_CREATE
+#include "kipr/create/create.h"
+#endif
+
 #ifdef KIPR_MODULE_ANALOG
 #include "kipr/analog/analog.h"
 #endif

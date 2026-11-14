@@ -34,5 +34,6 @@
 #cmakedefine KIPR_MODULE_THREAD
 #cmakedefine KIPR_MODULE_TIME
 #cmakedefine KIPR_MODULE_WAIT_FOR
+#cmakedefine KIPR_MODULE_CREATE
 
 #endif
